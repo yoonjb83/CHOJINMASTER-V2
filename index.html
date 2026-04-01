@@ -1144,6 +1144,116 @@
             opacity: 1
         }
 
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-box {
+            background: #fff;
+            padding: 40px;
+            border-radius: var(--rlg);
+            box-shadow: var(--shl);
+            width: 340px;
+            border: 1px solid var(--bdr);
+            text-align: left;
+        }
+
+        .login-logo {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .login-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--act);
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            font-size: 13px;
+            color: var(--txt);
+        }
+
+        .lfg {
+            margin-bottom: 16px;
+        }
+
+        .lfl {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--txs);
+            margin-bottom: 6px;
+        }
+
+        .lfi {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--rmd);
+            border: 1px solid var(--bdr);
+            font-size: 14px;
+            transition: all .2s;
+            box-sizing: border-box;
+        }
+
+        .lfi:focus {
+            border-color: var(--tl);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(30, 125, 84, .1);
+        }
+
+        .lbl {
+            width: 100%;
+            padding: 13px;
+            background: var(--tl);
+            color: #fff;
+            border: none;
+            border-radius: var(--rmd);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .lbl:hover {
+            background: var(--tld);
+            transform: translateY(-1px);
+        }
+
+        .user-badge {
+            margin: 12px 20px;
+            padding: 10px 14px;
+            background: var(--sur2);
+            border-radius: var(--rmd);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .u-name {
+            font-weight: 600;
+            color: var(--act);
+        }
+
+        .btn-lo {
+            font-size: 11px;
+            cursor: pointer;
+            color: var(--txs);
+            text-decoration: underline;
+        }
+
+        .btn-lo:hover {
+            color: var(--rd);
+        }
+
         @media(max-width:1100px) {
             .kpi-grid {
                 grid-template-columns: repeat(2, 1fr)
@@ -1157,11 +1267,40 @@
 </head>
 
 <body>
-    <div class="app">
+    <div id="login-screen" class="login-overlay">
+        <div class="login-box">
+            <div class="login-logo">
+                <div class="login-title">초진마스터V2</div>
+                <div class="login-subtitle">환자 관리 시스템 로그인</div>
+            </div>
+            <div class="lfg">
+                <label class="lfl">아이디</label>
+                <input type="text" id="l-id" class="lfi" placeholder="아이디를 입력하세요"
+                    onkeyup="if(event.key==='Enter')document.getElementById('l-pw').focus()">
+            </div>
+            <div class="lfg">
+                <label class="lfl">비밀번호</label>
+                <input type="password" id="l-pw" class="lfi" placeholder="비밀번호를 입력하세요"
+                    onkeyup="if(event.key==='Enter')document.getElementById('l-code').focus()">
+            </div>
+            <div class="lfg">
+                <label class="lfl">시크릿 코드</label>
+                <input type="password" id="l-code" class="lfi" placeholder="시크릿 코드를 입력하세요"
+                    onkeyup="if(event.key==='Enter')handleLogin()">
+            </div>
+            <button class="lbl" onclick="handleLogin()">로그인</button>
+        </div>
+    </div>
+
+    <div class="app" id="app-main" style="display:none">
         <aside class="sidebar">
             <div class="sidebar-logo">
                 <div class="sidebar-logo-main">초진마스터V2</div>
                 <div class="sidebar-logo-sub">초진환자 관리대장 · 진료원장 전용</div>
+            </div>
+            <div class="user-badge">
+                <div><span class="u-name" id="cur-u-disp">admin</span> 님</div>
+                <span class="btn-lo" onclick="handleLogout()">로그아웃</span>
             </div>
             <div class="nav-section">
                 <div class="nav-label">대시보드</div>
@@ -1485,17 +1624,56 @@
     </div>
 
     <script>
-        // ═══ DATA ═══
-        const SK = 'hagaon_v4';
+        // ═══ AUTH & DATA ═══
+        let curU = sessionStorage.getItem('cm2_user');
+        let DB = null;
+
+        function getSK() { return `hagaon_v4_${curU}`; }
         function loadDB() {
-            try { const r = localStorage.getItem(SK); if (r) return JSON.parse(r); } catch (e) { }
+            try { const r = localStorage.getItem(getSK()); if (r) return JSON.parse(r); } catch (e) { }
             return {
-                gunbo: [{ id: 'g1', date: '2026-03-30', name: '전찬구', age: '30대', gender: '남', route: '지인소개', symptom: '견비통', recTreat: '초추PK', actTreat: '초추PK', revisit: '1회', nextDate: '2026-04-02', status: '예약대기', drop: '', note: '' }],
-                jabo: [{ id: 'j1', date: '2026-03-30', name: '전찬구', age: '30대', gender: '남', admit: '외래', accident: '보행자', fracture: 'X', symptom: '요통', revisit: '1회', nextDate: '2026-04-02', status: '예약대기', conclude: '', note: 'AP' }]
+                gunbo: [],
+                jabo: []
             };
         }
-        function saveDB() { localStorage.setItem(SK, JSON.stringify(DB)); }
-        let DB = loadDB();
+        function saveDB() { if (curU) localStorage.setItem(getSK(), JSON.stringify(DB)); }
+
+        function handleLogin() {
+            const id = document.getElementById('l-id').value.trim();
+            const pw = document.getElementById('l-pw').value.trim();
+            const code = document.getElementById('l-code').value.trim();
+
+            if (!id || !pw || !code) { alert('아이디, 비밀번호, 시크릿코드를 모두 입력해주세요.'); return; }
+
+            // 시크릿 코드 검증
+            if (code !== 'hgo2026!') { alert('시크릿 코드가 올바르지 않습니다.'); return; }
+
+            // 관리자 계정 체크
+            if (id === 'admin' && pw !== '1234') { alert('비밀번호가 틀렸습니다.'); return; }
+
+            curU = id;
+            sessionStorage.setItem('cm2_user', id);
+            initApp();
+        }
+
+        function handleLogout() {
+            if (!confirm('로그아웃 하시겠습니까?')) return;
+            sessionStorage.removeItem('cm2_user');
+            location.reload();
+        }
+
+        function initApp() {
+            if (!curU) {
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('app-main').style.display = 'none';
+                return;
+            }
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-main').style.display = 'flex';
+            document.getElementById('cur-u-disp').textContent = curU;
+            DB = loadDB();
+            renderAll();
+        }
 
         // ═══ UTILS ═══
         const MOS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
@@ -1813,8 +1991,7 @@
             XLSX.writeFile(wb, `초진마스터V2_초진환자_${new Date().toISOString().slice(0, 10)}.xlsx`);
             toast('엑셀 파일이 다운로드되었습니다.');
         }
-
-        renderAll();
+        initApp();
     </script>
 
 </html>
