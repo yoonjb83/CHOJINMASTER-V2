@@ -349,20 +349,36 @@
 
         /* ── INLINE TABLE ── */
         .table-wrap {
-            overflow-x: auto
+            overflow-x: auto;
+            height: 545px;
+            overflow-y: auto
+        }
+
+        table.dt thead th {
+            position: sticky;
+            top: 0;
+            background: var(--sur);
+            z-index: 10;
         }
 
         table.dt {
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
-            background: transparent !important
+            background: transparent
         }
 
         table.dt th,
-        table.dt td,
-        table.dt tr {
-            background: transparent !important
+        table.dt td {
+            background: transparent
+        }
+
+        table.dt thead th {
+            background: var(--sur) !important
+        }
+
+        table.dt tr.row-drop {
+            background: #fff0f3 !important
         }
 
         table.dt th {
@@ -1522,7 +1538,8 @@
             age: ['10대', '20대', '30대', '40대', '50대', '60대', '70대+'],
             gender: ['남', '여'],
             route: ['지인소개', '인터넷', 'SNS', '네이버지도', '간판', '재방문', '기타'],
-            symptom: ['요통', '경항통', '견비통', '슬통', '두통', '소화불량', '안면마비', '디스크', '좌골신경통', '기타'],
+            symptomG: ['요통', '경항통', '견비통', '슬통', '두통', '소화불량', '안면마비', '디스크', '좌골신경통', '다이어트', '피부미용', '기타'],
+            symptomJ: ['요통', '경항통', '견비통', '슬통', '두통', '소화불량', '안면마비', '디스크', '좌골신경통', '기타'],
             recTreat: ['약침', '추나', '초추PK', '한약', '기타'],
             actTreat: ['약침', '추나', '초추PK', '한약', '기타'],
             revisit: ['미확인', '탈락', '1회', '2회', '3회', '4회', '5회', '6회', '7회', '8회', '9회', '10회+'],
@@ -1604,13 +1621,14 @@
             const tbody = document.getElementById('g-tbody'); tbody.innerHTML = '';
             data.forEach((p, i) => {
                 const tr = document.createElement('tr');
+                if (p.revisit === '탈락') tr.classList.add('row-drop');
                 const tNo = document.createElement('td'); tNo.innerHTML = `<div class="cv" style="color:var(--txt);font-family:var(--mo);font-size:11px">${i + 1}</div>`; tr.appendChild(tNo);
                 tr.appendChild(makeTD_txt(p.date, v => p.date = v, 'date', '110px'));
                 const tN = document.createElement('td'); const iN = document.createElement('input'); iN.type = 'text'; iN.value = p.name || ''; iN.className = 'ci'; iN.style.minWidth = '70px'; iN.style.fontWeight = '500'; iN.onchange = () => { p.name = iN.value; saveDB(); renderAll(); }; iN.onclick = e => e.stopPropagation(); tN.appendChild(iN); tr.appendChild(tN);
                 tr.appendChild(makeTD_DD(p.age, OPT.age, v => p.age = v));
                 tr.appendChild(makeTD_DD(p.gender, OPT.gender, v => p.gender = v));
                 tr.appendChild(makeTD_DD(p.route, OPT.route, v => p.route = v));
-                tr.appendChild(makeTD_DD(p.symptom, OPT.symptom, v => p.symptom = v));
+                tr.appendChild(makeTD_DD(p.symptom, OPT.symptomG, v => p.symptom = v));
                 tr.appendChild(makeTD_DD(p.recTreat, OPT.recTreat, v => p.recTreat = v));
                 tr.appendChild(makeTD_DD(p.actTreat, OPT.actTreat, v => p.actTreat = v));
                 tr.appendChild(makeTD_DD(p.revisit, OPT.revisit, v => p.revisit = v));
@@ -1639,6 +1657,7 @@
             const tbody = document.getElementById('j-tbody'); tbody.innerHTML = '';
             data.forEach((p, i) => {
                 const tr = document.createElement('tr');
+                if (p.revisit === '탈락') tr.classList.add('row-drop');
                 const tNo = document.createElement('td'); tNo.innerHTML = `<div class="cv" style="color:var(--txt);font-family:var(--mo);font-size:11px">${i + 1}</div>`; tr.appendChild(tNo);
                 tr.appendChild(makeTD_txt(p.date, v => p.date = v, 'date', '110px'));
                 const tN = document.createElement('td'); const iN = document.createElement('input'); iN.type = 'text'; iN.value = p.name || ''; iN.className = 'ci'; iN.style.minWidth = '70px'; iN.style.fontWeight = '500'; iN.onchange = () => { p.name = iN.value; saveDB(); renderAll(); }; iN.onclick = e => e.stopPropagation(); tN.appendChild(iN); tr.appendChild(tN);
@@ -1647,7 +1666,7 @@
                 tr.appendChild(makeTD_DD(p.admit, OPT.admit, v => p.admit = v));
                 tr.appendChild(makeTD_DD(p.accident, OPT.accident, v => p.accident = v));
                 tr.appendChild(makeTD_DD(p.fracture, OPT.fracture, v => p.fracture = v));
-                tr.appendChild(makeTD_DD(p.symptom, OPT.symptom, v => p.symptom = v));
+                tr.appendChild(makeTD_DD(p.symptom, OPT.symptomJ, v => p.symptom = v));
                 tr.appendChild(makeTD_DD(p.revisit, OPT.revisit, v => p.revisit = v));
                 tr.appendChild(makeTD_txt(p.nextDate, v => p.nextDate = v, 'date', '110px'));
                 const tD = document.createElement('td'); tD.innerHTML = `<div class="cv">${ddH(dday(p.nextDate))}</div>`; tr.appendChild(tD);
