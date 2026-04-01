@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>초진마스터V2 — 초진환자 관리대장</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg: #f5f4f0;
+            --sur: #fff;
+            --sur2: #f0eeea;
+            --bdr: rgba(0, 0, 0, .08);
+            --bdrm: rgba(0, 0, 0, .14);
+            --tx: #1a1917;
+            --txs: #6b6860;
+            --txt: #9b9890;
+            --ac: #2d5fa6;
+            --acl: #e8eef8;
+            --act: #1a3d73;
+            --gn: #1e7d54;
+            --gnl: #e6f4ee;
+            --am: #9a5c0a;
+            --aml: #fdf0dc;
+            --rd: #a02020;
+            --rdl: #fce8e8;
+            --tl: #0f6e6e;
+            --tll: #e4f4f4;
+            --rsm: 6px;
+            --rmd: 10px;
+            --rlg: 14px;
+            --sh: 0 1px 3px rgba(0, 0, 0, .06), 0 4px 12px rgba(0, 0, 0, .04);
+            --shl: 0 4px 20px rgba(0, 0, 0, .12);
+            --fn: 'Noto Sans KR', sans-serif;
+            --mo: 'DM Mono', monospace
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: var(--fn);
+            background: var(--bg);
+            color: var(--tx);
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 100vh
+        }
+
+        .app {
+            display: flex;
+            min-height: 100vh
+        }
+
+        .sidebar {
+            width: 220px;
+            background: var(--sur);
+            border-right: 1px solid var(--bdr);
+            padding: 24px 0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 100;
+            overflow-y: auto
+        }
+
+        .main {
+            margin-left: 220px;
+            flex: 1;
+            display: flex;
+            flex-direction: column
+        }
+
+        .topbar {
+            background: var(--sur);
+            border-bottom: 1px solid var(--bdr);
+            padding: 0 28px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50
+        }
+
+        .content {
+            padding: 24px 28px 80px;
+            flex: 1
+        }
+
+        .sidebar-logo {
+            padding: 0 20px 18px;
+            border-bottom: 1px solid var(--bdr);
+            margin-bottom: 14px
+        }
+
+        .sidebar-logo-main {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--tx);
+            line-height: 1.3
+        }
+
+        .sidebar-logo-sub {
+            font-size: 11px;
+            color: var(--txt);
+            margin-top: 2px
+        }
+
+        .nav-section {
+            padding: 0 12px;
+            margin-bottom: 4px
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--txt);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            padding: 8px 8px 4px
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: var(--rsm);
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--txs);
+            transition: all .15s;
+            margin-bottom: 2px
+        }
+
+        .nav-item:hover {
+            background: var(--sur2);
+            color: var(--tx)
+        }
+
+        .nav-item.active {
+            background: var(--acl);
+            color: var(--act);
+            font-weight: 500
+        }
+
+        .nav-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+            padding: 14px 20px 0;
+            border-top: 1px solid var(--bdr)
+        }
+
+        .sidebar-year {
+            font-size: 11px;
+            color: var(--txt)
+        }
+
+        .sidebar-year strong {
+            color: var(--ac);
+            font-family: var(--mo)
+        }
+
+        .topbar-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--tx)
+        }
+
+        .topbar-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 15px;
+            border-radius: var(--rsm);
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--fn);
+            cursor: pointer;
+            border: none;
+            transition: all .15s;
+            white-space: nowrap
+        }
+
+        .btn-primary {
+            background: var(--ac);
+            color: #fff
+        }
+
+        .btn-primary:hover {
+            background: var(--act)
+        }
+
+        .btn-secondary {
+            background: var(--sur);
+            color: var(--tx);
+            border: 1px solid var(--bdrm)
+        }
+
+        .btn-secondary:hover {
+            background: var(--sur2)
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px
+        }
+
+        .panel {
+            display: none
+        }
+
+        .panel.active {
+            display: block
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px
+        }
+
+        .kpi-card {
+            background: var(--sur);
+            border-radius: var(--rlg);
+            padding: 16px 18px;
+            box-shadow: var(--sh);
+            border: 1px solid var(--bdr)
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--txs);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 6px
+        }
+
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--tx);
+            font-family: var(--mo);
+            line-height: 1
+        }
+
+        .kpi-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-top: 7px
+        }
+
+        .badge-green {
+            background: var(--gnl);
+            color: var(--gn)
+        }
+
+        .badge-amber {
+            background: var(--aml);
+            color: var(--am)
+        }
+
+        .badge-red {
+            background: var(--rdl);
+            color: var(--rd)
+        }
+
+        .badge-blue {
+            background: var(--acl);
+            color: var(--act)
+        }
+
+        .badge-teal {
+            background: var(--tll);
+            color: var(--tl)
+        }
+
+        .section-row {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 16px
+        }
+
+        .row-2 {
+            grid-template-columns: 1fr 1fr
+        }
+
+        .row-3 {
+            grid-template-columns: 1.6fr 1fr 1fr
+        }
+
+        .card {
+            background: var(--sur);
+            border-radius: var(--rlg);
+            padding: 18px 20px;
+            box-shadow: var(--sh);
+            border: 1px solid var(--bdr)
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--tx)
+        }
+
+        .chart-wrap {
+            position: relative;
+            width: 100%
+        }
+
+        /* ── INLINE TABLE ── */
+        .table-wrap {
+            overflow-x: auto
+        }
+
+        table.dt {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            background: transparent !important
+        }
+
+        table.dt th,
+        table.dt td,
+        table.dt tr {
+            background: transparent !important
+        }
+
+        table.dt th {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txs);
+            text-align: left;
+            padding: 0 8px 9px;
+            border-bottom: 1px solid var(--bdrm);
+            white-space: nowrap
+        }
+
+        table.dt td {
+            padding: 0;
+            border-bottom: 1px solid var(--bdr);
+            color: var(--tx);
+            vertical-align: middle;
+            white-space: nowrap;
+            position: relative
+        }
+
+        table.dt tr:last-child td {
+            border-bottom: none
+        }
+
+        table.dt tr:hover td {
+            background: rgba(0, 0, 0, .04)
+        }
+
+        .cv {
+            padding: 7px 8px;
+            display: flex;
+            align-items: center;
+            min-height: 34px
+        }
+
+        td.ce {
+            cursor: pointer
+        }
+
+        td.ce:hover .cv {
+            background: rgba(45, 95, 166, .07);
+            border-radius: 4px
+        }
+
+        td.ce .cv::after {
+            content: '▾';
+            font-size: 9px;
+            color: var(--txt);
+            margin-left: 3px;
+            opacity: 0;
+            transition: opacity .1s
+        }
+
+        td.ce:hover .cv::after {
+            opacity: 1
+        }
+
+        .ci {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-family: var(--fn);
+            font-size: 12px;
+            color: var(--tx);
+            background: transparent;
+            padding: 7px 8px
+        }
+
+        .ci:focus {
+            background: rgba(45, 95, 166, .08);
+            border-radius: 4px
+        }
+
+        .idd {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 130px;
+            background: var(--sur);
+            border: 1px solid var(--bdrm);
+            border-radius: var(--rmd);
+            box-shadow: var(--shl);
+            z-index: 300;
+            overflow: hidden;
+            display: none;
+            max-height: 220px;
+            overflow-y: auto
+        }
+
+        .idd.open {
+            display: block
+        }
+
+        .idd-i {
+            padding: 8px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--tx);
+            white-space: nowrap
+        }
+
+        .idd-i:hover {
+            background: var(--acl);
+            color: var(--act)
+        }
+
+        .idd-i.sel {
+            font-weight: 600;
+            color: var(--ac)
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 999px;
+            white-space: nowrap
+        }
+
+        .pill-blue {
+            background: var(--acl);
+            color: var(--act)
+        }
+
+        .pill-amber {
+            background: var(--aml);
+            color: var(--am)
+        }
+
+        .pill-green {
+            background: var(--gnl);
+            color: var(--gn)
+        }
+
+        .pill-red {
+            background: var(--rdl);
+            color: var(--rd)
+        }
+
+        .pill-teal {
+            background: var(--tll);
+            color: var(--tl)
+        }
+
+        .pill-gray {
+            background: var(--sur2);
+            color: var(--txs)
+        }
+
+        .dday-ok {
+            color: var(--gn);
+            font-weight: 500;
+            font-family: var(--mo)
+        }
+
+        .dday-warn {
+            color: var(--am);
+            font-weight: 500;
+            font-family: var(--mo)
+        }
+
+        .dday-over {
+            color: var(--rd);
+            font-weight: 500;
+            font-family: var(--mo)
+        }
+
+        .abtns {
+            display: flex;
+            gap: 4px;
+            padding: 0 5px
+        }
+
+        .bi {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: var(--rsm);
+            border: 1px solid var(--bdrm);
+            background: var(--sur);
+            cursor: pointer;
+            color: var(--txs);
+            transition: all .15s;
+            font-size: 12px
+        }
+
+        .bi:hover {
+            background: var(--sur2)
+        }
+
+        .bi.del:hover {
+            background: var(--rdl);
+            color: var(--rd);
+            border-color: var(--rd)
+        }
+
+        .add-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: var(--txs);
+            cursor: pointer;
+            border-top: 1px dashed var(--bdrm);
+            transition: all .15s
+        }
+
+        .add-row:hover {
+            background: var(--acl);
+            color: var(--act)
+        }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .srch {
+            padding: 7px 12px;
+            border: 1px solid var(--bdrm);
+            border-radius: var(--rsm);
+            font-family: var(--fn);
+            font-size: 12.5px;
+            background: var(--sur);
+            outline: none;
+            min-width: 170px
+        }
+
+        .srch:focus {
+            border-color: var(--ac)
+        }
+
+        .fsel {
+            padding: 7px 26px 7px 10px;
+            border: 1px solid var(--bdrm);
+            border-radius: var(--rsm);
+            font-family: var(--fn);
+            font-size: 12.5px;
+            background: var(--sur);
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6860' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            cursor: pointer
+        }
+
+        /* ── STAT BAR ── */
+        .stat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .stat-lbl {
+            font-size: 11px;
+            color: var(--txs);
+            width: 64px;
+            flex-shrink: 0;
+            text-align: right
+        }
+
+        .stat-bar-bg {
+            flex: 1;
+            height: 7px;
+            background: var(--sur2);
+            border-radius: 4px;
+            overflow: hidden
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            border-radius: 4px
+        }
+
+        .stat-cnt {
+            font-size: 11px;
+            font-family: var(--mo);
+            width: 22px;
+            flex-shrink: 0
+        }
+
+        /* ── MODAL ── */
+        .mo {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .4);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s
+        }
+
+        .mo.open {
+            opacity: 1;
+            pointer-events: all
+        }
+
+        .mb {
+            background: var(--sur);
+            border-radius: var(--rlg);
+            padding: 26px 28px;
+            width: 480px;
+            max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shl);
+            transform: translateY(12px);
+            transition: transform .2s
+        }
+
+        .mo.open .mb {
+            transform: translateY(0)
+        }
+
+        .mh {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px
+        }
+
+        .mt {
+            font-size: 16px;
+            font-weight: 600
+        }
+
+        .mx {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid var(--bdrm);
+            background: var(--sur);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--txs)
+        }
+
+        .mx:hover {
+            background: var(--sur2)
+        }
+
+        .ttog {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px
+        }
+
+        .tbtn {
+            flex: 1;
+            padding: 10px;
+            border: 1.5px solid var(--bdrm);
+            border-radius: var(--rsm);
+            background: var(--sur);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--txs);
+            transition: all .15s;
+            text-align: center;
+            font-family: var(--fn)
+        }
+
+        .tbtn.active {
+            border-color: var(--ac);
+            background: var(--acl);
+            color: var(--act)
+        }
+
+        .fg {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 16px
+        }
+
+        .fgg {
+            display: flex;
+            flex-direction: column;
+            gap: 5px
+        }
+
+        .fl {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--txs)
+        }
+
+        .fl .r {
+            color: var(--rd);
+            margin-left: 2px
+        }
+
+        .fi,
+        .fs {
+            padding: 9px 12px;
+            border: 1px solid var(--bdrm);
+            border-radius: var(--rsm);
+            font-family: var(--fn);
+            font-size: 13px;
+            color: var(--tx);
+            background: var(--sur);
+            outline: none;
+            width: 100%
+        }
+
+        .fi:focus,
+        .fs:focus {
+            border-color: var(--ac);
+            box-shadow: 0 0 0 3px rgba(45, 95, 166, .1)
+        }
+
+        .fs {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6860' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 28px
+        }
+
+        .fa {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid var(--bdr)
+        }
+
+        /* ── CALCULATOR FAB ── */
+        .calc-fab {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--tl);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 22px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(15, 110, 110, .4);
+            z-index: 400;
+            transition: transform .2s, opacity .2s
+        }
+
+        .calc-fab:hover {
+            transform: scale(1.09)
+        }
+
+        .calc-fab.vis {
+            display: flex
+        }
+
+        .calc-panel {
+            position: fixed;
+            bottom: 90px;
+            right: 28px;
+            width: 530px;
+            max-width: calc(100vw - 40px);
+            background: var(--sur);
+            border-radius: var(--rlg);
+            box-shadow: var(--shl);
+            border: 1px solid var(--bdrm);
+            transform: translateY(18px) scale(.97);
+            opacity: 0;
+            transition: all .22s cubic-bezier(.4, 0, .2, 1);
+            pointer-events: none;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 401
+        }
+
+        .calc-panel.open {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            pointer-events: all
+        }
+
+        .cph {
+            background: var(--tl);
+            padding: 14px 18px;
+            border-radius: var(--rlg) var(--rlg) 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .cpt {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff
+        }
+
+        .cpx {
+            background: rgba(255, 255, 255, .2);
+            border: none;
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .cpb {
+            padding: 18px
+        }
+
+        .cdrow {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 14px
+        }
+
+        .cdg {
+            display: flex;
+            flex-direction: column;
+            gap: 5px
+        }
+
+        .cdl {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--txs);
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .cdot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0
+        }
+
+        .dr {
+            background: var(--rd)
+        }
+
+        .dt {
+            background: var(--tl)
+        }
+
+        .cdi {
+            display: flex;
+            gap: 5px;
+            align-items: center
+        }
+
+        .cdi input {
+            flex: 1;
+            padding: 7px 8px;
+            border: 1px solid var(--bdrm);
+            border-radius: var(--rsm);
+            font-family: var(--mo);
+            font-size: 12px;
+            text-align: center;
+            outline: none;
+            min-width: 0
+        }
+
+        .cdi input:focus {
+            border-color: var(--tl);
+            box-shadow: 0 0 0 2px rgba(15, 110, 110, .12)
+        }
+
+        .cdi span {
+            font-size: 11px;
+            color: var(--txt);
+            flex-shrink: 0
+        }
+
+        .crb {
+            width: 100%;
+            padding: 10px;
+            background: var(--tl);
+            color: #fff;
+            border: none;
+            border-radius: var(--rsm);
+            font-family: var(--fn);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 4px
+        }
+
+        .crb:hover {
+            opacity: .88
+        }
+
+        .cres {
+            margin-top: 14px;
+            border-top: 1px solid var(--bdr);
+            padding-top: 14px
+        }
+
+        .crm {
+            font-size: 11px;
+            color: var(--txt);
+            margin-bottom: 10px;
+            font-family: var(--mo)
+        }
+
+        table.ctbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11.5px
+        }
+
+        table.ctbl th {
+            font-size: 10.5px;
+            font-weight: 600;
+            color: var(--txs);
+            text-align: left;
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--bdrm);
+            background: var(--sur2)
+        }
+
+        table.ctbl td {
+            padding: 7px 10px;
+            border-bottom: 1px solid var(--bdr);
+            vertical-align: middle
+        }
+
+        table.ctbl tr:last-child td {
+            border-bottom: none
+        }
+
+        table.ctbl tr:hover td {
+            background: var(--sur2)
+        }
+
+        .csec td {
+            background: var(--acl) !important;
+            color: var(--act);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .05em;
+            padding: 5px 10px
+        }
+
+        .cdv {
+            font-family: var(--mo);
+            font-size: 11px;
+            color: var(--act);
+            font-weight: 500
+        }
+
+        .ccrit {
+            font-size: 11px;
+            color: var(--txs)
+        }
+
+        .cper {
+            font-size: 11px;
+            font-family: var(--mo);
+            color: var(--tl);
+            font-weight: 500
+        }
+
+        .cempty {
+            padding: 28px;
+            text-align: center;
+            color: var(--txt);
+            font-size: 12px;
+            line-height: 2
+        }
+
+        /* ── MONTHLY TABLE ── */
+        .monthl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px
+        }
+
+        .monthl th {
+            background: var(--sur2);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txs);
+            padding: 7px 9px;
+            text-align: center;
+            border: 1px solid var(--bdr)
+        }
+
+        .monthl td {
+            padding: 7px 9px;
+            text-align: center;
+            border: 1px solid var(--bdr);
+            font-family: var(--mo);
+            font-size: 12px
+        }
+
+        .monthl td.lbl {
+            text-align: left;
+            font-family: var(--fn);
+            font-weight: 500;
+            color: var(--tx)
+        }
+
+        .monthl tr.hl td {
+            background: var(--acl);
+            color: var(--act)
+        }
+
+        .monthl td.z {
+            color: var(--txt)
+        }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(60px);
+            background: var(--tx);
+            color: #fff;
+            padding: 11px 20px;
+            border-radius: var(--rmd);
+            font-size: 13px;
+            z-index: 9999;
+            opacity: 0;
+            transition: all .3s;
+            box-shadow: var(--shl);
+            pointer-events: none;
+            white-space: nowrap
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1
+        }
+
+        @media(max-width:1100px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .row-3 {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-main">초진마스터V2</div>
+                <div class="sidebar-logo-sub">초진환자 관리대장 · 진료원장 전용</div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-label">대시보드</div>
+                <div class="nav-item active" onclick="nav('overview',this)"><svg class="nav-icon" viewBox="0 0 20 20"
+                        fill="none" stroke="currentColor" stroke-width="1.6">
+                        <rect x="2" y="2" width="7" height="7" rx="1.5" />
+                        <rect x="11" y="2" width="7" height="7" rx="1.5" />
+                        <rect x="2" y="11" width="7" height="7" rx="1.5" />
+                        <rect x="11" y="11" width="7" height="7" rx="1.5" />
+                    </svg>전체 현황</div>
+                <div class="nav-item" onclick="nav('gunbo',this)"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"
+                        stroke="currentColor" stroke-width="1.6">
+                        <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z" />
+                        <path d="M7 10l2 2 4-4" />
+                    </svg>건보 / 기타</div>
+                <div class="nav-item" onclick="nav('jabo',this)"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"
+                        stroke="currentColor" stroke-width="1.6">
+                        <path d="M3 8h14M5 4l-2 4v7a1 1 0 001 1h12a1 1 0 001-1v-7l-2-4H5z" />
+                        <circle cx="7.5" cy="13" r="1.5" />
+                        <circle cx="12.5" cy="13" r="1.5" />
+                    </svg>자보 환자</div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-label">통계</div>
+                <div class="nav-item" onclick="nav('monthly',this)"><svg class="nav-icon" viewBox="0 0 20 20"
+                        fill="none" stroke="currentColor" stroke-width="1.6">
+                        <path d="M3 15l4-5 4 3 4-7" />
+                        <path d="M17 5h-4v4" />
+                    </svg>월별 통계</div>
+            </div>
+            <div class="sidebar-bottom">
+                <div class="sidebar-year">기준 연도 <strong>2026</strong></div>
+            </div>
+        </aside>
+
+        <div class="main">
+            <header class="topbar">
+                <span class="topbar-title" id="topbar-title">전체 현황</span>
+                <div class="topbar-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="exportExcel()"><svg width="13" height="13"
+                            viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 16l3-3-3-3M12 4H6a2 2 0 00-2 2v8m14-8v8a2 2 0 01-2 2h-6" />
+                            <path d="M10 9h6M10 13h6" />
+                        </svg>엑셀 내보내기</button>
+                    <button class="btn btn-primary btn-sm" onclick="openQR()"><svg width="13" height="13"
+                            viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M10 4v12M4 10h12" />
+                        </svg>빠른 환자 등록</button>
+                </div>
+            </header>
+
+            <div class="content">
+
+                <!-- OVERVIEW -->
+                <div id="panel-overview" class="panel active">
+                    <div class="kpi-grid" id="kpi-ov"></div>
+                    <div class="section-row row-3">
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">최근 초진 환자</span><span
+                                    style="font-size:11px;color:var(--txt)" id="ov-cnt"></span></div>
+                            <div class="table-wrap">
+                                <table class="dt">
+                                    <thead>
+                                        <tr>
+                                            <th>이름</th>
+                                            <th>초진일</th>
+                                            <th>구분</th>
+                                            <th>주증상</th>
+                                            <th>재진</th>
+                                            <th>D-Day</th>
+                                            <th>예약상태</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ov-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">내원경로</span></div>
+                            <div class="chart-wrap" style="height:160px"><canvas id="ch-route-ov"></canvas></div>
+                            <div id="leg-ov"
+                                style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;font-size:11px;color:var(--txs)">
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">주증상</span></div>
+                            <div class="stat-list" id="sym-stats"></div>
+                        </div>
+                    </div>
+                    <div class="section-row row-2">
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">월별 초진 추이</span></div>
+                            <div class="chart-wrap" style="height:160px"><canvas id="ch-month-ov"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">연령대 분포</span></div>
+                            <div class="chart-wrap" style="height:160px"><canvas id="ch-age-ov"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GUNBO -->
+                <div id="panel-gunbo" class="panel">
+                    <div class="kpi-grid" id="kpi-gunbo"></div>
+                    <div class="card" style="margin-bottom:16px">
+                        <div class="card-header">
+                            <span class="card-title">건보 / 기타 환자 목록</span>
+                            <div class="topbar-actions">
+                                <input class="srch" id="sg" placeholder="이름·증상 검색" oninput="renderG()">
+                                <select class="fsel" id="fg" onchange="renderG()">
+                                    <option value="">전체 상태</option>
+                                    <option>예약대기</option>
+                                    <option>내원완료</option>
+                                    <option>미이행</option>
+                                    <option>취소</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="dt">
+                                <thead>
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>초진일</th>
+                                        <th>이름</th>
+                                        <th>연령대</th>
+                                        <th>성별</th>
+                                        <th>내원경로</th>
+                                        <th>주증상</th>
+                                        <th>권한치료</th>
+                                        <th>실제치료</th>
+                                        <th>재진여부</th>
+                                        <th>다음예약일</th>
+                                        <th>D-Day</th>
+                                        <th>예약상태</th>
+                                        <th>탈락사유</th>
+                                        <th>특이사항</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="g-tbody"></tbody>
+                            </table>
+                            <div class="add-row" onclick="addRow('gunbo')"><svg width="13" height="13"
+                                    viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path d="M10 4v12M4 10h12" />
+                                </svg>새 행 추가</div>
+                        </div>
+                    </div>
+                    <div class="section-row row-2">
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">월별 건보 초진</span></div>
+                            <div class="chart-wrap" style="height:160px"><canvas id="ch-gm"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">치료별 동의율</span></div>
+                            <div class="chart-wrap" style="height:160px"><canvas id="ch-treat"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JABO -->
+                <div id="panel-jabo" class="panel">
+                    <div class="kpi-grid" id="kpi-jabo"></div>
+                    <div class="card" style="margin-bottom:16px">
+                        <div class="card-header">
+                            <span class="card-title">자보 환자 목록</span>
+                            <div class="topbar-actions">
+                                <input class="srch" id="sj" placeholder="이름·증상 검색" oninput="renderJ()">
+                                <select class="fsel" id="fj" onchange="renderJ()">
+                                    <option value="">전체 상태</option>
+                                    <option>예약대기</option>
+                                    <option>내원완료</option>
+                                    <option>미이행</option>
+                                    <option>취소</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="dt">
+                                <thead>
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>초진일</th>
+                                        <th>이름</th>
+                                        <th>연령대</th>
+                                        <th>성별</th>
+                                        <th>입원/외래</th>
+                                        <th>사고유형</th>
+                                        <th>골절여부</th>
+                                        <th>주증상</th>
+                                        <th>재진여부</th>
+                                        <th>다음예약일</th>
+                                        <th>D-Day</th>
+                                        <th>예약상태</th>
+                                        <th>사건종결</th>
+                                        <th>특이사항</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="j-tbody"></tbody>
+                            </table>
+                            <div class="add-row" onclick="addRow('jabo')"><svg width="13" height="13"
+                                    viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path d="M10 4v12M4 10h12" />
+                                </svg>새 행 추가</div>
+                        </div>
+                    </div>
+                    <div class="section-row row-2">
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">월별 자보 초진</span></div>
+                            <div class="chart-wrap" style="height:160px"><canvas id="ch-jm"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">골절여부</span></div>
+                            <div class="chart-wrap" style="height:160px"><canvas id="ch-frac"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MONTHLY -->
+                <div id="panel-monthly" class="panel">
+                    <div class="kpi-grid" id="kpi-monthly"></div>
+                    <div class="card" style="margin-bottom:16px">
+                        <div class="card-header"><span class="card-title">① 월별 초진 환자 현황</span></div>
+                        <div class="chart-wrap" style="height:210px"><canvas id="ch-main-m"></canvas></div>
+                    </div>
+                    <div class="section-row row-2">
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">② 월별 재진율</span></div>
+                            <div class="chart-wrap" style="height:170px"><canvas id="ch-rr-m"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">③ 월별 상담 동의율</span></div>
+                            <div class="chart-wrap" style="height:170px"><canvas id="ch-ar-m"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="section-row row-2">
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">④ 탈락사유 분포</span></div>
+                            <div class="chart-wrap" style="height:170px"><canvas id="ch-drop-m"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">⑤ 내원경로 분포</span></div>
+                            <div class="chart-wrap" style="height:170px"><canvas id="ch-route-m"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="section-row row-2">
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">⑥ 연령대 현황</span></div>
+                            <div class="chart-wrap" style="height:170px"><canvas id="ch-age-m"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">⑦ 치료별 동의율</span></div>
+                            <div class="chart-wrap" style="height:170px"><canvas id="ch-treat-m"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">월별 통계 상세표</span></div>
+                        <div style="overflow-x:auto">
+                            <table class="monthl" id="m-detail"></table>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /content -->
+        </div><!-- /main -->
+    </div><!-- /app -->
+
+    <!-- QUICK REGISTER MODAL -->
+    <div class="mo" id="qr-mo" onclick="if(event.target===this)closeQR()">
+        <div class="mb">
+            <div class="mh"><span class="mt">⚡ 빠른 환자 등록</span><button class="mx" onclick="closeQR()">✕</button></div>
+            <div class="ttog"><button class="tbtn active" id="qt-g" onclick="setQT('gunbo')">📋 건보 / 기타</button><button
+                    class="tbtn" id="qt-j" onclick="setQT('jabo')">🚗 자보</button></div>
+            <div class="fg">
+                <div class="fgg"><label class="fl">초진일 <span class="r">*</span></label><input type="date" class="fi"
+                        id="qf-d"></div>
+                <div class="fgg"><label class="fl">이름 <span class="r">*</span></label><input type="text" class="fi"
+                        id="qf-n" placeholder="홍길동"></div>
+                <div class="fgg"><label class="fl">연령대</label><select class="fs" id="qf-a">
+                        <option>10대</option>
+                        <option>20대</option>
+                        <option selected>30대</option>
+                        <option>40대</option>
+                        <option>50대</option>
+                        <option>60대</option>
+                        <option>70대+</option>
+                    </select></div>
+                <div class="fgg"><label class="fl">성별</label><select class="fs" id="qf-g">
+                        <option>남</option>
+                        <option>여</option>
+                    </select></div>
+            </div>
+            <p style="font-size:11px;color:var(--txt);margin-top:10px">* 등록 후 목록에서 셀을 클릭해 나머지 항목을 입력하세요.</p>
+            <div class="fa"><button class="btn btn-secondary" onclick="closeQR()">취소</button><button
+                    class="btn btn-primary" onclick="saveQR()">등록하기</button></div>
+        </div>
+    </div>
+
+    <!-- CALCULATOR FAB (자보 전용) -->
+    <button class="calc-fab" id="calc-fab" onclick="toggleCalc()" title="자보 내원횟수 계산기">🧮</button>
+    <div class="calc-panel" id="calc-panel">
+        <div class="cph"><span class="cpt">🧮 자보 내원횟수 계산기</span><button class="cpx" onclick="closeCalc()">✕</button>
+        </div>
+        <div class="cpb">
+            <div class="cdrow">
+                <div class="cdg">
+                    <div class="cdl"><span class="cdot dr"></span>수상일 (사고 발생일)</div>
+                    <div class="cdi"><input type="date" id="c-acc-date" class="fi" style="text-align:left"></div>
+                </div>
+                <div class="cdg">
+                    <div class="cdl"><span class="cdot dt"></span>내원일 &amp; 1차 첩약일</div>
+                    <div class="cdi"><input type="date" id="c-vis-date" class="fi" style="text-align:left"></div>
+                </div>
+            </div>
+            <button class="crb" onclick="runCalc()">계산하기</button>
+            <div class="cres" id="cres">
+                <div class="cempty">수상일과 내원일을 입력 후<br>계산하기를 눌러주세요.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══ DATA ═══
+        const SK = 'hagaon_v4';
+        function loadDB() {
+            try { const r = localStorage.getItem(SK); if (r) return JSON.parse(r); } catch (e) { }
+            return {
+                gunbo: [{ id: 'g1', date: '2026-03-30', name: '전찬구', age: '30대', gender: '남', route: '지인소개', symptom: '견비통', recTreat: '초추PK', actTreat: '초추PK', revisit: '1회', nextDate: '2026-04-02', status: '예약대기', drop: '', note: '' }],
+                jabo: [{ id: 'j1', date: '2026-03-30', name: '전찬구', age: '30대', gender: '남', admit: '외래', accident: '보행자', fracture: 'X', symptom: '요통', revisit: '1회', nextDate: '2026-04-02', status: '예약대기', conclude: '', note: 'AP' }]
+            };
+        }
+        function saveDB() { localStorage.setItem(SK, JSON.stringify(DB)); }
+        let DB = loadDB();
+
+        // ═══ UTILS ═══
+        const MOS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+        const CL = ['#2d5fa6', '#1e7d54', '#9a5c0a', '#a02020', '#0f6e6e', '#634a8f', '#5a6e2a', '#6b6860'];
+        const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        function dday(s) { if (!s) return null; const t = new Date(s); t.setHours(0, 0, 0, 0); const n = new Date(); n.setHours(0, 0, 0, 0); return Math.round((t - n) / 86400000); }
+        function ddH(d) { if (d === null) return '<span style="color:var(--txt)">-</span>'; if (d > 0) return `<span class="dday-ok">D-${d}</span>`; if (d === 0) return `<span class="dday-warn">D-Day</span>`; return `<span class="dday-over">D+${Math.abs(d)}</span>`; }
+        function sPill(s) { const m = { '예약대기': 'pill-amber', '내원완료': 'pill-green', '미이행': 'pill-red', '취소': 'pill-gray' }; return `<span class="pill ${m[s] || 'pill-gray'}">${s}</span>`; }
+        function fd(s) { return s ? s.slice(0, 10) : '-'; }
+        function getMC(arr) { const c = new Array(12).fill(0); arr.forEach(p => { const m = new Date(p.date).getMonth(); if (!isNaN(m)) c[m]++; }); return c; }
+        function cBy(arr, k) { const m = {}; arr.forEach(p => { const v = p[k] || '기타'; m[v] = (m[v] || 0) + 1; }); return m; }
+        function toast(msg, d = 2400) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), d); }
+
+        // ═══ NAV ═══
+        const TITLES = { overview: '전체 현황', gunbo: '건보 / 기타', jabo: '자보 환자', monthly: '월별 통계' };
+        let curPanel = 'overview';
+        function nav(name, el) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + name).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+            document.getElementById('topbar-title').textContent = TITLES[name];
+            curPanel = name;
+            const fab = document.getElementById('calc-fab');
+            if (name === 'jabo') fab.classList.add('vis');
+            else { fab.classList.remove('vis'); closeCalc(); }
+            renderAll();
+        }
+
+        // ═══ CHARTS ═══
+        const CI = {};
+        function mkC(id, cfg) { const el = document.getElementById(id); if (!el) return; if (CI[id]) CI[id].destroy(); CI[id] = new Chart(el, cfg); }
+        const go = { color: 'rgba(0,0,0,.05)' };
+        function bCfg(labels, datasets, extra = {}) { return { type: 'bar', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: datasets.length > 1, labels: { font: { size: 11 }, boxWidth: 9, padding: 9, color: '#6b6860' } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9b9890', autoSkip: false, maxRotation: 45 } }, y: { grid: go, ticks: { font: { size: 10 }, color: '#9b9890', stepSize: 1, precision: 0 } } }, ...extra } }; }
+        function lCfg(labels, datasets) { return { type: 'line', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { font: { size: 11 }, boxWidth: 9, padding: 9, color: '#6b6860' } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9b9890', autoSkip: false, maxRotation: 45 } }, y: { grid: go, ticks: { font: { size: 10 }, color: '#9b9890', precision: 0 }, min: 0 } } } }; }
+        function dCfg(labels, data, colors) { return { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false } } } }; }
+
+        // ═══ DROPDOWN OPTIONS ═══
+        const OPT = {
+            age: ['10대', '20대', '30대', '40대', '50대', '60대', '70대+'],
+            gender: ['남', '여'],
+            route: ['지인소개', '인터넷', 'SNS', '네이버지도', '간판', '재방문', '기타'],
+            symptom: ['요통', '경항통', '견비통', '슬통', '두통', '소화불량', '안면마비', '디스크', '좌골신경통', '기타'],
+            recTreat: ['약침', '추나', '초추PK', '한약', '기타'],
+            actTreat: ['약침', '추나', '초추PK', '한약', '기타'],
+            revisit: ['미확인', '탈락', '1회', '2회', '3회', '4회', '5회', '6회', '7회', '8회', '9회', '10회+'],
+            status: ['예약대기', '내원완료', '미이행', '취소'],
+            drop: ['', '증상호전', '비용부담', '거리멀음', '타병원', '연락두절', '시간부족', '기타'],
+            admit: ['외래', '입원'],
+            accident: ['보행자', '운전자', '동승자', '기타'],
+            fracture: ['X', 'O'],
+            conclude: ['', '진행중', '종결'],
+        };
+
+        let activeDD = null;
+        function closeDD() { document.querySelectorAll('.idd.open').forEach(d => d.classList.remove('open')); activeDD = null; }
+        document.addEventListener('click', e => { if (!e.target.closest('td.ce') && !e.target.closest('.idd')) closeDD(); });
+
+        function makeTD_DD(val, opts, onChange) {
+            const td = document.createElement('td'); td.className = 'ce';
+            const cv = document.createElement('div'); cv.className = 'cv'; cv.textContent = val || '-'; td.appendChild(cv);
+            const dd = document.createElement('div'); dd.className = 'idd';
+            opts.forEach(o => { const it = document.createElement('div'); it.className = 'idd-i' + (o === val ? ' sel' : ''); it.textContent = o || '(없음)'; it.onclick = e => { e.stopPropagation(); onChange(o); cv.textContent = o || '-'; dd.querySelectorAll('.idd-i').forEach(x => x.classList.remove('sel')); it.classList.add('sel'); saveDB(); closeDD(); renderAll(); }; dd.appendChild(it); });
+            td.appendChild(dd);
+            td.addEventListener('click', e => { e.stopPropagation(); if (activeDD === dd) { closeDD(); return; } closeDD(); dd.classList.add('open'); activeDD = dd; });
+            return td;
+        }
+        function makeTD_txt(val, onChange, type = 'text', w = '80px') {
+            const td = document.createElement('td');
+            const inp = document.createElement('input'); inp.type = type; inp.value = val || ''; inp.className = 'ci'; inp.style.minWidth = w;
+            inp.onchange = () => { onChange(inp.value); saveDB(); if (type === 'date') renderAll(); };
+            inp.onclick = e => e.stopPropagation();
+            td.appendChild(inp); return td;
+        }
+
+        // ═══ RENDER OVERVIEW ═══
+        function renderOV() {
+            const all = [...DB.gunbo.map(p => ({ ...p, _t: '건보' })), ...DB.jabo.map(p => ({ ...p, _t: '자보' }))];
+            const todayS = new Date().toISOString().slice(0, 10);
+            const todayA = all.filter(p => p.nextDate === todayS).length;
+            const imm = all.filter(p => { const d = dday(p.nextDate); return d !== null && d >= 0 && d <= 3; }).length;
+            const rv = all.filter(p => p.revisit && p.revisit !== '미확인' && p.revisit !== '탈락').length;
+            const rrP = all.length ? Math.round(rv / all.length * 100) : 0;
+            const ag = DB.gunbo.filter(p => p.recTreat && p.actTreat && p.recTreat === p.actTreat).length;
+            const arP = DB.gunbo.length ? Math.round(ag / DB.gunbo.length * 100) : 0;
+            document.getElementById('kpi-ov').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">전체 초진</div><div class="kpi-value">${all.length}</div><span class="kpi-badge badge-blue">건보 ${DB.gunbo.length} · 자보 ${DB.jabo.length}</span></div>
+    <div class="kpi-card"><div class="kpi-label">오늘 예약</div><div class="kpi-value">${todayA}</div><span class="kpi-badge badge-amber">예약임박 ${imm}건</span></div>
+    <div class="kpi-card"><div class="kpi-label">재진율</div><div class="kpi-value">${rrP}%</div><span class="kpi-badge ${rrP >= 70 ? 'badge-green' : 'badge-amber'}">${rv}명 재진</span></div>
+    <div class="kpi-card"><div class="kpi-label">상담동의율</div><div class="kpi-value">${arP}%</div><span class="kpi-badge ${arP >= 80 ? 'badge-green' : 'badge-amber'}">${ag}건 동의</span></div>`;
+            const rec = [...all].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+            document.getElementById('ov-cnt').textContent = `최근 ${rec.length}명`;
+            document.getElementById('ov-tbody').innerHTML = rec.length ? rec.map(p => `<tr>
+    <td><div class="cv">${p.name}</div></td><td><div class="cv">${fd(p.date)}</div></td>
+    <td><div class="cv">${p._t === '자보' ? '<span class="pill pill-amber">자보</span>' : '<span class="pill pill-blue">건보</span>'}</div></td>
+    <td><div class="cv">${p.symptom || '-'}</div></td><td><div class="cv">${p.revisit || '-'}</div></td>
+    <td><div class="cv">${ddH(dday(p.nextDate))}</div></td><td><div class="cv">${sPill(p.status)}</div></td></tr>`).join('')
+                : '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--txt);font-size:12px">등록된 환자가 없습니다</td></tr>';
+            const rm = cBy(DB.gunbo, 'route'); const rl = Object.keys(rm);
+            mkC('ch-route-ov', dCfg(rl, rl.map(k => rm[k]), CL.slice(0, rl.length)));
+            document.getElementById('leg-ov').innerHTML = rl.map((l, i) => `<span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;background:${CL[i]};display:inline-block"></span>${l} ${rm[l]}</span>`).join('');
+            const gm = getMC(DB.gunbo), jm = getMC(DB.jabo);
+            mkC('ch-month-ov', bCfg(MOS, [{ label: '건보', data: gm, backgroundColor: '#2d5fa6', borderRadius: 3 }, { label: '자보', data: jm, backgroundColor: '#1e7d54', borderRadius: 3 }]));
+            const ages = ['10대', '20대', '30대', '40대', '50대', '60대', '70대+'], am = cBy(all, 'age');
+            mkC('ch-age-ov', bCfg(ages, [{ label: '인원', data: ages.map(a => am[a] || 0), backgroundColor: '#2d5fa6', borderRadius: 3 }]));
+            const sm = cBy(all, 'symptom'), ss = Object.entries(sm).sort((a, b) => b[1] - a[1]), mx = ss[0]?.[1] || 1;
+            document.getElementById('sym-stats').innerHTML = ss.slice(0, 7).map(([k, v], i) => `<div class="stat-row"><span class="stat-lbl">${k}</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.round(v / mx * 100)}%;background:${CL[i % CL.length]}"></div></div><span class="stat-cnt">${v}</span></div>`).join('') || '<div style="padding:16px;color:var(--txt);font-size:12px;text-align:center">데이터 없음</div>';
+        }
+
+        // ═══ RENDER GUNBO ═══
+        function renderGKPI() {
+            const g = DB.gunbo, rv = g.filter(p => p.revisit && p.revisit !== '미확인' && p.revisit !== '탈락').length, ag = g.filter(p => p.recTreat && p.actTreat && p.recTreat === p.actTreat).length, dp = g.filter(p => p.revisit === '탈락').length;
+            const rr = g.length ? Math.round(rv / g.length * 100) : 0, ar = g.length ? Math.round(ag / g.length * 100) : 0;
+            document.getElementById('kpi-gunbo').innerHTML = `<div class="kpi-card"><div class="kpi-label">건보 총 초진</div><div class="kpi-value">${g.length}</div><span class="kpi-badge badge-blue">2026년 누적</span></div><div class="kpi-card"><div class="kpi-label">재진율</div><div class="kpi-value">${rr}%</div><span class="kpi-badge ${rr >= 70 ? 'badge-green' : 'badge-amber'}">${rv}명 재진</span></div><div class="kpi-card"><div class="kpi-label">상담동의율</div><div class="kpi-value">${ar}%</div><span class="kpi-badge ${ar >= 80 ? 'badge-green' : 'badge-amber'}">${ag}건 동의</span></div><div class="kpi-card"><div class="kpi-label">탈락</div><div class="kpi-value">${dp}</div><span class="kpi-badge ${dp === 0 ? 'badge-green' : 'badge-red'}">${dp === 0 ? '탈락 없음' : dp + '건'}</span></div>`;
+            mkC('ch-gm', bCfg(MOS, [{ label: '건보 초진', data: getMC(g), backgroundColor: '#2d5fa6', borderRadius: 3 }]));
+            const tm = cBy(g.filter(p => p.recTreat === p.actTreat && p.recTreat), 'actTreat'), tl = Object.keys(tm);
+            mkC('ch-treat', dCfg(tl, tl.map(k => tm[k]), CL.slice(0, tl.length)));
+        }
+        function renderG() {
+            const q = (document.getElementById('sg')?.value || '').toLowerCase(), sf = document.getElementById('fg')?.value || '';
+            const data = DB.gunbo.filter(p => (!q || p.name.includes(q) || (p.symptom || '').includes(q)) && (!sf || p.status === sf));
+            const tbody = document.getElementById('g-tbody'); tbody.innerHTML = '';
+            data.forEach((p, i) => {
+                const tr = document.createElement('tr');
+                const tNo = document.createElement('td'); tNo.innerHTML = `<div class="cv" style="color:var(--txt);font-family:var(--mo);font-size:11px">${i + 1}</div>`; tr.appendChild(tNo);
+                tr.appendChild(makeTD_txt(p.date, v => p.date = v, 'date', '110px'));
+                const tN = document.createElement('td'); const iN = document.createElement('input'); iN.type = 'text'; iN.value = p.name || ''; iN.className = 'ci'; iN.style.minWidth = '70px'; iN.style.fontWeight = '500'; iN.onchange = () => { p.name = iN.value; saveDB(); renderAll(); }; iN.onclick = e => e.stopPropagation(); tN.appendChild(iN); tr.appendChild(tN);
+                tr.appendChild(makeTD_DD(p.age, OPT.age, v => p.age = v));
+                tr.appendChild(makeTD_DD(p.gender, OPT.gender, v => p.gender = v));
+                tr.appendChild(makeTD_DD(p.route, OPT.route, v => p.route = v));
+                tr.appendChild(makeTD_DD(p.symptom, OPT.symptom, v => p.symptom = v));
+                tr.appendChild(makeTD_DD(p.recTreat, OPT.recTreat, v => p.recTreat = v));
+                tr.appendChild(makeTD_DD(p.actTreat, OPT.actTreat, v => p.actTreat = v));
+                tr.appendChild(makeTD_DD(p.revisit, OPT.revisit, v => p.revisit = v));
+                tr.appendChild(makeTD_txt(p.nextDate, v => p.nextDate = v, 'date', '110px'));
+                const tD = document.createElement('td'); tD.innerHTML = `<div class="cv">${ddH(dday(p.nextDate))}</div>`; tr.appendChild(tD);
+                tr.appendChild(makeTD_DD(p.status, OPT.status, v => p.status = v));
+                tr.appendChild(makeTD_DD(p.drop || '', OPT.drop, v => p.drop = v));
+                const tNote = document.createElement('td'); const iNote = document.createElement('input'); iNote.type = 'text'; iNote.value = p.note || ''; iNote.className = 'ci'; iNote.style.minWidth = '90px'; iNote.onchange = () => { p.note = iNote.value; saveDB(); }; iNote.onclick = e => e.stopPropagation(); tNote.appendChild(iNote); tr.appendChild(tNote);
+                const tA = document.createElement('td'); tA.innerHTML = `<div class="abtns"><button class="bi del" onclick="delP('${p.id}','gunbo')">🗑</button></div>`; tr.appendChild(tA);
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ═══ RENDER JABO ═══
+        function renderJKPI() {
+            const j = DB.jabo, rv = j.filter(p => p.revisit && p.revisit !== '미확인' && p.revisit !== '탈락').length, ad = j.filter(p => p.admit === '입원').length, cl = j.filter(p => p.conclude === '종결').length;
+            const rr = j.length ? Math.round(rv / j.length * 100) : 0;
+            document.getElementById('kpi-jabo').innerHTML = `<div class="kpi-card"><div class="kpi-label">자보 총 초진</div><div class="kpi-value">${j.length}</div><span class="kpi-badge badge-teal">2026년 누적</span></div><div class="kpi-card"><div class="kpi-label">재진율</div><div class="kpi-value">${rr}%</div><span class="kpi-badge ${rr >= 70 ? 'badge-green' : 'badge-amber'}">${rv}명 재진</span></div><div class="kpi-card"><div class="kpi-label">입원</div><div class="kpi-value">${ad}</div><span class="kpi-badge badge-amber">외래 ${j.length - ad}건</span></div><div class="kpi-card"><div class="kpi-label">사건종결</div><div class="kpi-value">${cl}</div><span class="kpi-badge ${cl === 0 ? 'badge-amber' : 'badge-green'}">${cl}건 종결</span></div>`;
+            mkC('ch-jm', bCfg(MOS, [{ label: '자보 초진', data: getMC(j), backgroundColor: '#1e7d54', borderRadius: 3 }]));
+            const fm = cBy(j, 'fracture'), fl = Object.keys(fm);
+            mkC('ch-frac', dCfg(fl.map(k => k === 'O' ? '골절 있음' : '골절 없음'), fl.map(k => fm[k]), ['#a02020', '#1e7d54']));
+        }
+        function renderJ() {
+            const q = (document.getElementById('sj')?.value || '').toLowerCase(), sf = document.getElementById('fj')?.value || '';
+            const data = DB.jabo.filter(p => (!q || p.name.includes(q) || (p.symptom || '').includes(q)) && (!sf || p.status === sf));
+            const tbody = document.getElementById('j-tbody'); tbody.innerHTML = '';
+            data.forEach((p, i) => {
+                const tr = document.createElement('tr');
+                const tNo = document.createElement('td'); tNo.innerHTML = `<div class="cv" style="color:var(--txt);font-family:var(--mo);font-size:11px">${i + 1}</div>`; tr.appendChild(tNo);
+                tr.appendChild(makeTD_txt(p.date, v => p.date = v, 'date', '110px'));
+                const tN = document.createElement('td'); const iN = document.createElement('input'); iN.type = 'text'; iN.value = p.name || ''; iN.className = 'ci'; iN.style.minWidth = '70px'; iN.style.fontWeight = '500'; iN.onchange = () => { p.name = iN.value; saveDB(); renderAll(); }; iN.onclick = e => e.stopPropagation(); tN.appendChild(iN); tr.appendChild(tN);
+                tr.appendChild(makeTD_DD(p.age, OPT.age, v => p.age = v));
+                tr.appendChild(makeTD_DD(p.gender, OPT.gender, v => p.gender = v));
+                tr.appendChild(makeTD_DD(p.admit, OPT.admit, v => p.admit = v));
+                tr.appendChild(makeTD_DD(p.accident, OPT.accident, v => p.accident = v));
+                tr.appendChild(makeTD_DD(p.fracture, OPT.fracture, v => p.fracture = v));
+                tr.appendChild(makeTD_DD(p.symptom, OPT.symptom, v => p.symptom = v));
+                tr.appendChild(makeTD_DD(p.revisit, OPT.revisit, v => p.revisit = v));
+                tr.appendChild(makeTD_txt(p.nextDate, v => p.nextDate = v, 'date', '110px'));
+                const tD = document.createElement('td'); tD.innerHTML = `<div class="cv">${ddH(dday(p.nextDate))}</div>`; tr.appendChild(tD);
+                tr.appendChild(makeTD_DD(p.status, OPT.status, v => p.status = v));
+                tr.appendChild(makeTD_DD(p.conclude || '', OPT.conclude, v => p.conclude = v));
+                const tNote = document.createElement('td'); const iNote = document.createElement('input'); iNote.type = 'text'; iNote.value = p.note || ''; iNote.className = 'ci'; iNote.style.minWidth = '90px'; iNote.onchange = () => { p.note = iNote.value; saveDB(); }; iNote.onclick = e => e.stopPropagation(); tNote.appendChild(iNote); tr.appendChild(tNote);
+                const tA = document.createElement('td'); tA.innerHTML = `<div class="abtns"><button class="bi del" onclick="delP('${p.id}','jabo')">🗑</button></div>`; tr.appendChild(tA);
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ═══ ADD ROW / DELETE ═══
+        function addRow(type) {
+            const today = new Date().toISOString().slice(0, 10);
+            const base = { id: uid(type[0]), date: today, name: '', age: '30대', gender: '남', revisit: '미확인', nextDate: '', status: '예약대기', note: '' };
+            if (type === 'gunbo') Object.assign(base, { route: '지인소개', symptom: '요통', recTreat: '약침', actTreat: '약침', drop: '' });
+            else Object.assign(base, { admit: '외래', accident: '보행자', fracture: 'X', symptom: '요통', conclude: '' });
+            DB[type].push(base); saveDB();
+            type === 'gunbo' ? renderG() : renderJ();
+            document.getElementById(type === 'gunbo' ? 'g-tbody' : 'j-tbody').lastChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            toast('새 행이 추가되었습니다. 셀을 클릭해 입력하세요.');
+        }
+        function delP(id, type) { if (!confirm('삭제하시겠습니까?')) return; DB[type] = DB[type].filter(p => p.id !== id); saveDB(); renderAll(); toast('삭제되었습니다.'); }
+
+        // ═══ RENDER MONTHLY ═══
+        function renderMonthly() {
+            const g = DB.gunbo, j = DB.jabo, gm = getMC(g), jm = getMC(j);
+            const dp = g.filter(p => p.revisit === '탈락').length;
+            document.getElementById('kpi-monthly').innerHTML = `<div class="kpi-card"><div class="kpi-label">건보 초진</div><div class="kpi-value">${g.length}</div></div><div class="kpi-card"><div class="kpi-label">자보 초진</div><div class="kpi-value">${j.length}</div></div><div class="kpi-card"><div class="kpi-label">전체 초진</div><div class="kpi-value">${g.length + j.length}</div></div><div class="kpi-card"><div class="kpi-label">탈락</div><div class="kpi-value">${dp}</div><span class="kpi-badge ${dp === 0 ? 'badge-green' : 'badge-red'}">${dp === 0 ? '탈락 없음' : dp + '건'}</span></div>`;
+
+            mkC('ch-main-m', bCfg(MOS, [{ label: '건보 초진', data: gm, backgroundColor: '#2d5fa6', borderRadius: 3 }, { label: '자보 초진', data: jm, backgroundColor: '#1e7d54', borderRadius: 3 }]));
+
+            const all = [...g, ...j];
+            const rrD = MOS.map((_, mi) => { const t = all.filter(p => new Date(p.date).getMonth() === mi).length, r = all.filter(p => new Date(p.date).getMonth() === mi && p.revisit && p.revisit !== '미확인' && p.revisit !== '탈락').length; return t ? Math.round(r / t * 100) : 0; });
+            mkC('ch-rr-m', lCfg(MOS, [{ label: '재진율(%)', data: rrD, borderColor: '#2d5fa6', backgroundColor: 'rgba(45,95,166,.12)', fill: true, tension: .4, pointRadius: 4, pointBackgroundColor: '#2d5fa6' }]));
+
+            const arD = MOS.map((_, mi) => { const t = g.filter(p => new Date(p.date).getMonth() === mi).length, r = g.filter(p => new Date(p.date).getMonth() === mi && p.recTreat && p.actTreat && p.recTreat === p.actTreat).length; return t ? Math.round(r / t * 100) : 0; });
+            mkC('ch-ar-m', lCfg(MOS, [{ label: '동의율(%)', data: arD, borderColor: '#1e7d54', backgroundColor: 'rgba(30,125,84,.12)', fill: true, tension: .4, pointRadius: 4, pointBackgroundColor: '#1e7d54' }]));
+
+            const drs = ['증상호전', '비용부담', '거리멀음', '타병원', '연락두절', '시간부족', '기타'], dm = cBy(g.filter(p => p.drop), 'drop');
+            mkC('ch-drop-m', bCfg(drs, [{ label: '건수', data: drs.map(r => dm[r] || 0), backgroundColor: '#a02020', borderRadius: 3 }], { indexAxis: 'y' }));
+
+            const rm = cBy(g, 'route'), rl = Object.keys(rm);
+            mkC('ch-route-m', dCfg(rl, rl.map(k => rm[k]), CL.slice(0, rl.length)));
+
+            const ages = ['10대', '20대', '30대', '40대', '50대', '60대', '70대+'], am = cBy(all, 'age');
+            mkC('ch-age-m', bCfg(ages, [{ label: '인원', data: ages.map(a => am[a] || 0), backgroundColor: '#634a8f', borderRadius: 3 }]));
+
+            const tm = cBy(g.filter(p => p.recTreat === p.actTreat && p.recTreat), 'actTreat'), tl = Object.keys(tm);
+            mkC('ch-treat-m', dCfg(tl, tl.map(k => tm[k]), CL.slice(0, tl.length)));
+
+            const rows = [{ lbl: '건보 초진', data: gm, total: g.length }, { lbl: '자보 초진', data: jm, total: j.length }, { lbl: '전체 초진', data: gm.map((v, i) => v + jm[i]), total: g.length + j.length, hl: true }, { lbl: '탈락', data: MOS.map((_, mi) => g.filter(p => new Date(p.date).getMonth() === mi && p.revisit === '탈락').length), total: dp }];
+            document.getElementById('m-detail').innerHTML = `<tr><th>구분</th>${MOS.map(m => `<th>${m}</th>`).join('')}<th>합계</th></tr>` + rows.map(r => `<tr class="${r.hl ? 'hl' : ''}"><td class="lbl">${r.lbl}</td>${r.data.map(v => `<td class="${v === 0 ? 'z' : ''}">${v}</td>`).join('')}<td style="font-weight:600">${r.total}</td></tr>`).join('');
+        }
+
+        function renderAll() { renderOV(); renderGKPI(); renderG(); renderJKPI(); renderJ(); renderMonthly(); }
+
+        // ═══ QUICK REGISTER ═══
+        let qT = 'gunbo';
+        function openQR() { document.getElementById('qf-d').value = new Date().toISOString().slice(0, 10); document.getElementById('qf-n').value = ''; document.getElementById('qr-mo').classList.add('open'); }
+        function closeQR() { document.getElementById('qr-mo').classList.remove('open'); }
+        function setQT(t) { qT = t; document.getElementById('qt-g').classList.toggle('active', t === 'gunbo'); document.getElementById('qt-j').classList.toggle('active', t === 'jabo'); }
+        function saveQR() {
+            const date = document.getElementById('qf-d').value, name = document.getElementById('qf-n').value.trim();
+            if (!date || !name) { toast('초진일과 이름을 입력해주세요.'); return; }
+            const age = document.getElementById('qf-a').value, gender = document.getElementById('qf-g').value;
+            const base = { id: uid(qT[0]), date, name, age, gender, revisit: '미확인', nextDate: '', status: '예약대기', note: '' };
+            if (qT === 'gunbo') Object.assign(base, { route: '지인소개', symptom: '요통', recTreat: '약침', actTreat: '약침', drop: '' });
+            else Object.assign(base, { admit: '외래', accident: '보행자', fracture: 'X', symptom: '요통', conclude: '' });
+            DB[qT].push(base); saveDB(); closeQR(); renderAll();
+            toast(`${name} 환자가 ${qT === 'gunbo' ? '건보' : '자보'} 목록에 등록되었습니다.`);
+            const navEl = document.querySelectorAll('.nav-item')[qT === 'gunbo' ? 1 : 2];
+            nav(qT, navEl);
+        }
+
+        // ═══ CALCULATOR ═══
+        let calcOpen = false;
+        function toggleCalc() { calcOpen ? closeCalc() : openCalc(); }
+        function openCalc() { document.getElementById('calc-panel').classList.add('open'); calcOpen = true; }
+        function closeCalc() { document.getElementById('calc-panel').classList.remove('open'); calcOpen = false; }
+        document.addEventListener('click', e => { if (calcOpen && !e.target.closest('#calc-panel') && !e.target.closest('#calc-fab')) closeCalc(); });
+
+        const aD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+        const aW = (d, n) => aD(d, n * 7);
+        const aM = (d, n) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; };
+        const fD = d => { if (!d) return '-'; return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+        function runCalc() {
+            const accDate = document.getElementById('c-acc-date').value;
+            const visDate = document.getElementById('c-vis-date').value;
+            if (!accDate || !visDate) { toast('날짜를 선택해주세요.'); return; }
+            const acc = new Date(accDate), vis = new Date(visDate);
+            acc.setHours(0, 0, 0, 0); vis.setHours(0, 0, 0, 0);
+            const w1 = aW(acc, 1), w3 = aW(acc, 3), w11 = aW(acc, 11), m6 = aM(acc, 6), w10 = aW(acc, 10), d15 = aD(acc, 15);
+            const v2 = aD(vis, 7), v3 = aD(vis, 14);
+            const rows = [
+                { s: '추나' },
+                { nm: '내원가능일 · 추나', dt: w3, cr: '까지는 매일', pr: '3주' },
+                { nm: '', dt: w11, cr: '까지는 주3회', pr: '11주' },
+                { nm: '', dt: m6, cr: '까지는 주2회', pr: '6개월' },
+                { nm: '', af: m6, cr: '부터는 주1회', pr: '7개월~' },
+                { s: '자락관법' },
+                { nm: '자락관법', dt: w1, cr: '까지는 매일', pr: '1주' },
+                { nm: '', dt: w3, cr: '까지는 주3회', pr: '2-3주' },
+                { nm: '', af: w3, cr: '부터는 주2회', pr: '' },
+                { s: '물리치료 기기' },
+                { nm: 'ICT2부위·IR·HOT·ICE', dt: d15, cr: '까지 인정', pr: '' },
+                { nm: 'ICT→전침 & 기기구', af: d15, cr: '~ 추나완료시', pr: '' },
+                { nm: '기기구삭제(약침없을시)', rs: aD(acc, 6), re: d15, cr: '기간 적용', pr: '' },
+                { s: '약침술' },
+                { nm: '약침술', dt: w1, cr: '까지는 매일', pr: '1주' },
+                { nm: '', dt: w3, cr: '까지는 주3회', pr: '2-3주' },
+                { nm: '', dt: w10, cr: '까지는 주2회', pr: '4-10주' },
+                { nm: '', af: w10, cr: '부터는 주1회', pr: '' },
+                { s: '첩약 처방' },
+                { nm: '1차 첩약', dt: vis, cr: '당일 처방', pr: '내원일 기준' },
+                { nm: '2차 첩약 (7일)', dt: v2, cr: '부터 처방 가능', pr: '' },
+                { nm: '3차 첩약 (7일)', dt: v3, cr: '부터 처방 가능', pr: '' },
+            ];
+            let h = `<div class="crm">수상일 ${fD(acc)} · 내원일 ${fD(vis)}</div><table class="ctbl"><thead><tr><th style="width:145px">치료항목</th><th>날짜</th><th>기준</th><th>기간</th></tr></thead><tbody>`;
+            rows.forEach(r => {
+                if (r.s) { h += `<tr class="csec"><td colspan="4">${r.s}</td></tr>`; return; }
+                const nm = r.nm || '↳';
+                let ds;
+                if (r.rs) ds = `<span class="cdv">${fD(r.rs)}</span><span style="color:var(--txt)"> ~ </span><span class="cdv">${fD(r.re)}</span>`;
+                else if (r.af) ds = `<span class="cdv">${fD(r.af)}</span><span style="font-size:10px;color:var(--txt)"> 이후</span>`;
+                else ds = `<span class="cdv">${fD(r.dt)}</span>`;
+                h += `<tr><td style="font-size:11px;font-weight:${r.nm ? '500' : '400'};color:${r.nm ? 'var(--tx)' : 'var(--txs)'};padding-left:${r.nm ? '10px' : '20px'}">${nm}</td><td>${ds}</td><td class="ccrit">${r.cr}</td><td class="cper">${r.pr || ''}</td></tr>`;
+            });
+            h += `</tbody></table>`;
+            document.getElementById('cres').innerHTML = h;
+            toast('계산 완료!', 1800);
+        }
+
+        // ═══ EXCEL EXPORT ═══
+        function exportExcel() {
+            const wb = XLSX.utils.book_new();
+            const gC = ['No.', '초진일', '이름', '연령대', '성별', '내원경로', '주증상', '권한치료', '실제치료', '재진여부', '다음예약일', 'D-Day', '예약상태', '탈락사유', '특이사항'];
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([gC, ...DB.gunbo.map((p, i) => [i + 1, p.date, p.name, p.age, p.gender, p.route, p.symptom, p.recTreat, p.actTreat, p.revisit, p.nextDate, dday(p.nextDate) != null ? `D${dday(p.nextDate) <= 0 ? '+' : '-'}${Math.abs(dday(p.nextDate))}` : '', p.status, p.drop || '', p.note || ''])]), '건보_기타');
+            const jC = ['No.', '초진일', '이름', '연령대', '성별', '입원/외래', '사고유형', '골절여부', '주증상', '재진여부', '다음예약일', 'D-Day', '예약상태', '사건종결', '특이사항'];
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([jC, ...DB.jabo.map((p, i) => [i + 1, p.date, p.name, p.age, p.gender, p.admit, p.accident, p.fracture, p.symptom, p.revisit, p.nextDate, dday(p.nextDate) != null ? `D${dday(p.nextDate) <= 0 ? '+' : '-'}${Math.abs(dday(p.nextDate))}` : '', p.status, p.conclude || '', p.note || ''])]), '자보');
+            const gm = getMC(DB.gunbo), jm = getMC(DB.jabo);
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['구분', ...MOS, '합계'], ['건보 초진', ...gm, DB.gunbo.length], ['자보 초진', ...jm, DB.jabo.length], ['전체 초진', ...gm.map((v, i) => v + jm[i]), DB.gunbo.length + DB.jabo.length]]), '월별통계');
+            XLSX.writeFile(wb, `초진마스터V2_초진환자_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            toast('엑셀 파일이 다운로드되었습니다.');
+        }
+
+        renderAll();
+    </script>
+
+</html>
